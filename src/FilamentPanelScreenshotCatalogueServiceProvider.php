@@ -32,5 +32,12 @@ class FilamentPanelScreenshotCatalogueServiceProvider extends PackageServiceProv
         $this->publishes([
             __DIR__ . '/../resources/js' => base_path('resources/js/screenshot-catalogue'),
         ], 'filament-panel-screenshot-catalogue-js');
+
+        // Claude Code slash command — opt-in install for hosts that use
+        // Claude Code to drive the catalogue. Copies into the host's own
+        // `.claude/commands/`, where the slash command becomes invokable.
+        $this->publishes([
+            __DIR__ . '/../.claude/commands' => base_path('.claude/commands'),
+        ], 'filament-panel-screenshot-catalogue-claude-skills');
     }
 }

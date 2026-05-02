@@ -33,12 +33,15 @@ The package's commands auto-register. Then make sure both Composer and Node prer
 | Playwright | Drives the headless browser | `npm install playwright && npx playwright install chromium` in the host project root. |
 | A canonical "screenshot user" per panel | The runner logs in as this user and the sitemap generator uses them to find sample records | Seeded by the host (see *Panel registration* below). |
 
-Optionally publish the config and the Node runner:
+Optionally publish the config, the Node runner, or the bundled Claude Code skill:
 
 ```bash
-php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-config
-php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-js
+php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-config         # override defaults
+php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-js             # custom Playwright runner
+php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-claude-skills  # /screenshot-catalogue slash command
 ```
+
+The Claude skill installs into the host's `.claude/commands/screenshot-catalogue.md` — gives Claude the full command surface, troubleshooting tips, and the `PanelDescriptor` registration pattern as context.
 
 ## Panel registration
 
