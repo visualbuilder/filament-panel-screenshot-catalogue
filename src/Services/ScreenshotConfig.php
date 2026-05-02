@@ -1,0 +1,189 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Services;
+
+use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
+
+/**
+ * Shared configuration helpers for the screenshot catalogue: panel
+ * credentials, viewport definitions, env→path mapping, and the canonical
+ * S3 key builder. Used by every command and queued job in the package.
+ *
+ * Panel credentials come from `PanelRegistry` — hosts register their
+ * panels via `PanelRegistry::register(new PanelDescriptor(...))`. Viewport
+ * defs and S3 path conventions come from `config('panel-screenshot-catalogue')`.
+ */
+class ScreenshotConfig
+{
+    /**
+     * @return array{domain: string, loginHeading: string, email: string, password: string}|null
+     */
+    public static function panelCredentials(string $panelKey): ?array
+    {
+        $descriptor = PanelRegistry::get($panelKey);
+        if ($descriptor === null) {
+            return null;
+        }
+
+        return [
+            'domain' => $descriptor->domain,
+            'loginHeading' => $descriptor->loginHeading,
+            'email' => $descriptor->email,
+            'password' => $descriptor->password,
+        ];
+    }
+
+    /**
+     * Translate the friendly CLI panel key (lowercase) to the panel ID
+     * Filament uses internally (often camelCase).
+     */
+    public static function panelInternalId(string $key): string
+    {
+        return PanelRegistry::get($key)?->panelId ?? $key;
+    }
+
+    /**
+     * Viewport definitions are config-driven so each host can standardise
+     * on its own breakpoints without forking the package.
+     *
+     * @return array<string, array{name: string, width: int, height: int}>
+     */
+    public static function viewportDefinitions(): array
+    {
+        $configured = config('panel-screenshot-catalogue.viewports');
+
+        if (! is_array($configured) || $configured === []) {
+            return [
+                'desktop' => ['name' => 'desktop', 'width' => 1280, 'height' => 800],
+                'tablet' => ['name' => 'tablet', 'width' => 768, 'height' => 1024],
+                'mobile' => ['name' => 'mobile', 'width' => 375, 'height' => 812],
+            ];
+        }
+
+        return $configured;
+    }
+
+    /**
+     * @param  array<int, string>  $names
+     * @return array<int, array{name: string, width: int, height: int}>
+     */
+    public static function resolveViewports(array $names): array
+    {
+        $defs = self::viewportDefinitions();
+        if (empty($names)) {
+            return [$defs[array_key_first($defs)]];
+        }
+
+        return collect($names)
+            ->map(fn (string $key) => $defs[strtolower($key)] ?? null)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $modes
+     * @return array<int, string>
+     */
+    public static function resolveModes(array $modes): array
+    {
+        if (empty($modes)) {
+            return ['light'];
+        }
+
+        return collect($modes)
+            ->map(fn (string $mode) => strtolower($mode))
+            ->filter(fn (string $mode) => in_array($mode, ['light', 'dark'], true))
+            ->values()
+            ->all();
+    }
+
+    public static function resolveEnv(): string
+    {
+        return match ($env = app()->environment()) {
+            'local' => 'dev',
+            default => $env,
+        };
+    }
+
+    /**
+     * Canonical S3 path builder.
+     * Layout: {prefix}/{env}/{panel}/{version}/{slug}/{file}
+     * Production omits {env}; root index.html omits {slug}.
+     */
+    public static function s3Key(string $env, string $panel, string $version, string $slug, string $file): string
+    {
+        $prefix = (string) config('panel-screenshot-catalogue.path_prefix', 'screenshots');
+        $segments = [$prefix];
+
+        if ($env !== 'production') {
+            $segments[] = $env;
+        }
+        $segments[] = $panel;
+        $segments[] = $version;
+        if ($slug !== '') {
+            $segments[] = $slug;
+        }
+        $segments[] = $file;
+
+        return implode('/', $segments);
+    }
+
+    public static function s3KeyPrefix(string $env, string $panel, string $version): string
+    {
+        return self::s3Key($env, $panel, $version, '', '');
+    }
+
+    public static function disk(): string
+    {
+        $value = config('panel-screenshot-catalogue.disk');
+
+        return is_string($value) && $value !== '' ? $value : 's3_public';
+    }
+
+    /**
+     * Banner IDs to pre-dismiss (pushed into the page's `localStorage`
+     * before the screenshot fires) so that visualbuilder/filament-2fa's
+     * banners don't pollute every shot. Optional dependency — when the
+     * package isn't installed, the lookup is a no-op.
+     *
+     * @return array<int, int>
+     */
+    public static function dismissibleBannerIds(): array
+    {
+        $bannerModel = '\\Visualbuilder\\Filament2fa\\Models\\Banner';
+        if (! class_exists($bannerModel)) {
+            return [];
+        }
+
+        return $bannerModel::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /**
+     * Optional CSS string injected into every captured page just before
+     * the screenshot fires — used to lock host-specific scroll-driven
+     * states into something stable. Empty by default.
+     */
+    public static function captureTimeCss(): string
+    {
+        return (string) config('panel-screenshot-catalogue.capture_time_css', '');
+    }
+
+    /**
+     * Resolve the path to the Playwright runner script. Hosts can publish
+     * the script (via `vendor:publish --tag=filament-panel-screenshot-catalogue-js`)
+     * and override `panel-screenshot-catalogue.capture_script` if they want
+     * to customise it.
+     */
+    public static function captureScript(): string
+    {
+        $configured = config('panel-screenshot-catalogue.capture_script');
+        if (is_string($configured) && $configured !== '') {
+            return $configured;
+        }
+
+        return dirname(__DIR__, 2) . '/resources/js/capture.mjs';
+    }
+}

@@ -1,0 +1,199 @@
+#!/usr/bin/env node
+/**
+ * Screenshot catalogue runner.
+ *
+ * Reads a JSON manifest from stdin describing pages to capture, logs into
+ * the target panel once, then iterates pages × viewports × modes capturing
+ * a PNG per variant to a local output directory. The PHP Artisan command
+ * (`screenshot:capture`) drives this — never invoke directly unless
+ * debugging.
+ *
+ * Manifest shape:
+ *   {
+ *     "domain": "my.neurohub.local",
+ *     "loginPath": "/login",
+ *     "loginHeading": "End User Login",
+ *     "email": "...",
+ *     "password": "password",
+ *     "outDir": "/tmp/screenshots/<run>",
+ *     "viewports": [{ "name": "desktop", "width": 1280, "height": 800 }, ...],
+ *     "modes": ["light", "dark"],
+ *     "pages": [{ "slug": "dashboard", "url": "/" }, ...]
+ *   }
+ *
+ * Each capture is written to:
+ *   {outDir}/{slug}/{viewport}-{mode}.png
+ */
+
+import { chromium } from 'playwright';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import { stdin } from 'node:process';
+
+async function readStdin() {
+    const chunks = [];
+    for await (const chunk of stdin) chunks.push(chunk);
+    return Buffer.concat(chunks).toString('utf8');
+}
+
+async function login(page, manifest) {
+    const url = `https://${manifest.domain}${manifest.loginPath}`;
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('textbox', { name: 'Email address*' }).fill(manifest.email);
+    await page.getByRole('textbox', { name: 'Password*' }).fill(manifest.password);
+
+    const before = page.url();
+    await page.getByRole('button', { name: 'Sign in' }).click();
+
+    // Wait for navigation away from /login. Tolerant timeout — slow login
+    // shouldn't fail the whole run.
+    await page.waitForURL((url) => url.toString() !== before, { timeout: 30000 });
+}
+
+async function setMode(page, mode) {
+    // The pink26 panel reads `localStorage.theme` and toggles `.dark` on
+    // <html> via the segmented theme-toggle component. Mirror that
+    // mechanism so dark-mode shots render the dark CSS.
+    await page.evaluate((mode) => {
+        localStorage.setItem('theme', mode);
+        document.documentElement.classList.toggle('dark', mode === 'dark');
+    }, mode);
+}
+
+async function dismissBanners(page, bannerIds) {
+    if (!Array.isArray(bannerIds) || bannerIds.length === 0) return;
+    // The visualbuilder/filament-2fa banner stores dismissed IDs in
+    // localStorage under `filament-banners::closed` as a JSON array.
+    // The component's check is `parsedBanners.indexOf(this.bannerId)`
+    // where bannerId is rendered as a string by Blade (`'{{ $banner->id }}'`),
+    // so the stored IDs must be strings or indexOf returns -1 due to
+    // strict equality and the banner stays visible.
+    const idsAsStrings = bannerIds.map((id) => String(id));
+    await page.evaluate((ids) => {
+        localStorage.setItem('filament-banners::closed', JSON.stringify(ids));
+    }, idsAsStrings);
+}
+
+async function injectChromeHider(page) {
+    // Belt-and-braces: even with APP_DEBUG=false the catalogue should
+    // never include any dev tooling, debugbar, error overlays, or
+    // skip-to-content links. Hide common offenders via CSS in case
+    // something local renders them anyway.
+    await page.addStyleTag({
+        content: `
+            .phpdebugbar, .phpdebugbar-header, .phpdebugbar-body,
+            #phpdebugbar, .phpdebugbar-resizehandle,
+            [class*="debugbar"],
+            .skip-link, [href="#content"]
+            { display: none !important; }
+        `,
+    });
+}
+
+async function capturePage(context, manifest, target, viewport, mode) {
+    const page = await context.newPage();
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+
+    await page.goto(`https://${manifest.domain}${target.url}`, { waitUntil: 'domcontentloaded' });
+    await setMode(page, mode);
+    await dismissBanners(page, manifest.dismissBannerIds);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await injectChromeHider(page);
+
+    // Filament hydrates over Livewire — wait for the page chrome and
+    // give Alpine + any async requests a moment to settle so the shot
+    // catches the rendered state, not a flash of unstyled content.
+    // Tolerant: timing out shouldn't kill the run, just log it so the
+    // captured screenshot still reflects whatever rendered.
+    try {
+        await page.waitForSelector('.fi-page, .fi-simple-layout, .fi-body', { timeout: 20000 });
+    } catch (err) {
+        console.error(`warn: ${target.slug} ${viewport.name}-${mode} did not render .fi-page selector — capturing as-is`);
+    }
+    await page.waitForTimeout(1500);
+
+    // Optional capture-time CSS — used by host themes to lock scroll-driven
+    // animations (e.g. shrinking topbars) into a stable state for the
+    // catalogue. The string comes from `panel-screenshot-catalogue.capture_time_css`
+    // on the host; empty by default.
+    if (manifest.captureTimeCss) {
+        await page.addStyleTag({ content: manifest.captureTimeCss });
+        await page.waitForTimeout(150);
+    }
+
+    const out = `${manifest.outDir}/${target.slug}/${viewport.name}-${mode}.png`;
+    await mkdir(dirname(out), { recursive: true });
+    // Always capture viewport-only — every shot in the catalogue should
+    // represent what fits on a real device. Long tables/forms scrolling
+    // off-screen is a deliberate UX signal we want to see, not a problem
+    // the screenshot tool should hide by stitching the full document.
+    await page.screenshot({ path: out, fullPage: false });
+
+    await page.close();
+    return out;
+}
+
+(async () => {
+    const manifest = JSON.parse(await readStdin());
+
+    const browser = await chromium.launch({
+        // Self-signed cert on local Valet domains; needed so HTTPS to
+        // *.neurohub.local works without a real cert chain.
+        ignoreHTTPSErrors: true,
+    });
+    const context = await browser.newContext({ ignoreHTTPSErrors: true });
+
+    try {
+        // Partition pages by auth state. Unauthenticated pages (login,
+        // password reset, etc.) need to be captured BEFORE we authenticate
+        // — otherwise visiting /login when already logged in just bounces
+        // to the dashboard.
+        const unauthPages = manifest.pages.filter((p) => p.auth === 'unauthenticated');
+        const authPages = manifest.pages.filter((p) => (p.auth ?? 'authenticated') === 'authenticated');
+
+        const captured = [];
+
+        // 1. Unauthenticated pages — fresh context, no cookies.
+        if (unauthPages.length > 0) {
+            const guestContext = await browser.newContext({ ignoreHTTPSErrors: true });
+            try {
+                for (const target of unauthPages) {
+                    for (const viewport of manifest.viewports) {
+                        for (const mode of manifest.modes) {
+                            const out = await capturePage(guestContext, manifest, target, viewport, mode);
+                            captured.push({ slug: target.slug, viewport: viewport.name, mode, path: out });
+                            console.error(`captured ${target.slug} ${viewport.name}-${mode} (guest)`);
+                        }
+                    }
+                }
+            } finally {
+                await guestContext.close();
+            }
+        }
+
+        // 2. Authenticated pages — login once, then reuse the session.
+        if (authPages.length > 0) {
+            const loginPage = await context.newPage();
+            await login(loginPage, manifest);
+            await loginPage.close();
+
+            for (const target of authPages) {
+                for (const viewport of manifest.viewports) {
+                    for (const mode of manifest.modes) {
+                        const out = await capturePage(context, manifest, target, viewport, mode);
+                        captured.push({ slug: target.slug, viewport: viewport.name, mode, path: out });
+                        console.error(`captured ${target.slug} ${viewport.name}-${mode}`);
+                    }
+                }
+            }
+        }
+
+        console.log(JSON.stringify({ captured }));
+    } finally {
+        await context.close();
+        await browser.close();
+    }
+})().catch((err) => {
+    console.error(err.stack || err.message || err);
+    process.exit(1);
+});
