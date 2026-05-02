@@ -20,9 +20,13 @@ The pipeline is:
 
 ## Install
 
+This is a development tool — most consumers will want it as a `require-dev` dependency so it never ships to production:
+
 ```bash
-composer require visualbuilder/filament-panel-screenshot-catalogue
+composer require --dev visualbuilder/filament-panel-screenshot-catalogue
 ```
+
+(If you genuinely need the artisan commands available in production — e.g. you run captures from a CI job that mounts production-like infrastructure — drop the `--dev` flag.)
 
 The package's commands auto-register. Then make sure both Composer and Node prerequisites are in place:
 
@@ -75,7 +79,23 @@ class ScreenshotCatalogueServiceProvider extends ServiceProvider
 }
 ```
 
-Add the provider to `bootstrap/providers.php` and register it.
+Add the provider to `bootstrap/providers.php`. **If you installed the package as `require-dev`** (the default suggestion above), wrap the registration in a `class_exists` check so production — where the package isn't installed — silently skips it instead of crashing on a missing class import:
+
+```php
+// bootstrap/providers.php
+
+$providers = [
+    // ...your usual providers...
+];
+
+if (class_exists(\Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry::class)) {
+    $providers[] = App\Providers\ScreenshotCatalogueServiceProvider::class;
+}
+
+return $providers;
+```
+
+If you installed as a regular `require` dependency, register the provider unconditionally.
 
 **Tenanted panels** (Filament's tenancy enabled): set the active tenant inside `authenticator`:
 
