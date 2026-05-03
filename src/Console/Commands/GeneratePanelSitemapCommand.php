@@ -61,39 +61,55 @@ class GeneratePanelSitemapCommand extends Command
             return self::FAILURE;
         }
 
-        // Setting the current panel makes Filament's URL helpers resolve
-        // routes against this panel's domain/path instead of the default.
-        Filament::setCurrentPanel($panel);
+        // Save the previous panel context so we can restore it on exit —
+        // when this command is invoked from a Filament request (e.g. the
+        // review package's "Regenerate captures" action shells out to
+        // `screenshot:dispatch`, which self-heals an empty sitemap by
+        // calling `panel:sitemap`), the polluted current-panel state
+        // leaks into the post-action URL helpers and breaks resource
+        // route resolution. Save/restore around the work makes the
+        // command safe to call from any context.
+        $previousPanel = class_exists(Filament::class) ? Filament::getCurrentPanel() : null;
 
-        $this->authForPanel($panelId);
+        try {
+            // Setting the current panel makes Filament's URL helpers
+            // resolve routes against this panel's domain/path.
+            Filament::setCurrentPanel($panel);
 
-        $entries = [
-            ...$this->authEntries($panel, $panelId),
-            ...$this->resourceEntries($panel, $panelId),
-            ...$this->customPageEntries($panel, $panelId),
-            ...$this->extraEntries($panelId),
-        ];
+            $this->authForPanel($panelId);
 
-        $excluded = $this->excludedSlugs();
-        $entries = array_values(array_filter(
-            $entries,
-            static fn (array $entry): bool => ! in_array($entry['slug'], $excluded, true),
-        ));
+            $entries = [
+                ...$this->authEntries($panel, $panelId),
+                ...$this->resourceEntries($panel, $panelId),
+                ...$this->customPageEntries($panel, $panelId),
+                ...$this->extraEntries($panelId),
+            ];
 
-        // Order: auth pages first, then dashboard, then resources by their
-        // navigationSort (with index/create/view/edit grouped per resource),
-        // then other custom pages last. Mirrors a sensible top-down read of
-        // the panel rather than the discovery order.
-        usort($entries, function (array $a, array $b): int {
-            return [$a['sort'], $a['slug']] <=> [$b['sort'], $b['slug']];
-        });
+            $excluded = $this->excludedSlugs();
+            $entries = array_values(array_filter(
+                $entries,
+                static fn (array $entry): bool => ! in_array($entry['slug'], $excluded, true),
+            ));
 
-        $output = $this->option('out') ?: storage_path("app/sitemap-{$panelId}.json");
-        file_put_contents($output, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+            // Order: auth pages first, then dashboard, then resources by their
+            // navigationSort (with index/create/view/edit grouped per resource),
+            // then other custom pages last. Mirrors a sensible top-down read of
+            // the panel rather than the discovery order.
+            usort($entries, function (array $a, array $b): int {
+                return [$a['sort'], $a['slug']] <=> [$b['sort'], $b['slug']];
+            });
 
-        $this->info(count($entries) . " entries → {$output}");
+            $output = $this->option('out') ?: storage_path("app/sitemap-{$panelId}.json");
+            file_put_contents($output, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
 
-        return self::SUCCESS;
+            $this->info(count($entries) . " entries → {$output}");
+
+            return self::SUCCESS;
+        } finally {
+            if ($previousPanel !== null) {
+                Filament::setCurrentPanel($previousPanel);
+            }
+        }
     }
 
     /**
