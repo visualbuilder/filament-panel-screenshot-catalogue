@@ -34,7 +34,9 @@ class RebuildScreenshotIndexJob implements ShouldQueue
         public string $panelKey,
         public string $env,
         public string $version,
-    ) {}
+    ) {
+        $this->onQueue((string) config('screenshot-catalogue.queue', 'screenshots'));
+    }
 
     public function handle(IndexBuilderService $service): void
     {

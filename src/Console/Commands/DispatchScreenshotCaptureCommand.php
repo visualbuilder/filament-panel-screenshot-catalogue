@@ -85,8 +85,11 @@ class DispatchScreenshotCaptureCommand extends Command
 
         $this->info("Dispatching " . count($jobs) . " page jobs (" . count($viewports) . ' viewport(s) × ' . count($modes) . ' mode(s) each)');
 
+        $queueName = (string) config('screenshot-catalogue.queue', 'screenshots');
+
         $pendingBatch = Bus::batch($jobs)
             ->name("screenshot-capture:{$panel}:{$version}")
+            ->onQueue($queueName)
             ->allowFailures()
             // `finally` fires after every job has run, regardless of
             // success/failure — so the index always rebuilds against
@@ -94,7 +97,7 @@ class DispatchScreenshotCaptureCommand extends Command
             // filament-screenshot-review package is installed, also fan
             // out a sync so its DB-backed Captures grid mirrors S3
             // without requiring a manual `screenshot-review:sync-captures`.
-            ->finally(function (Batch $batch) use ($finalize, $panel, $version): void {
+            ->finally(function (Batch $batch) use ($finalize, $panel, $version, $queueName): void {
                 dispatch($finalize);
 
                 // Soft hook — if the filament-screenshot-review package
@@ -108,7 +111,7 @@ class DispatchScreenshotCaptureCommand extends Command
                             '--panel' => $panel,
                             '--tag' => $version,
                         ]);
-                    });
+                    })->onQueue($queueName);
                 }
             });
 

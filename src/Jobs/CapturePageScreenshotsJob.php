@@ -46,8 +46,12 @@ class CapturePageScreenshotsJob implements ShouldQueue
         public string $env,
         public string $version,
     ) {
-        // Default queue — caller can override via dispatch->onQueue() if
-        // a dedicated screenshots queue is desired.
+        // Default to the dedicated screenshots queue so capture work
+        // doesn't share a worker with fast app jobs (and so Horizon
+        // hosts can give it a longer per-job timeout). Hosts override
+        // by setting screenshot-catalogue.queue or passing --queue= on
+        // the dispatch command.
+        $this->onQueue((string) config('screenshot-catalogue.queue', 'screenshots'));
     }
 
     public function handle(PageCaptureService $service): void

@@ -98,4 +98,22 @@ return [
         'logo' => env('PANEL_SCREENSHOT_CATALOGUE_BRAND_LOGO'),
         'favicon' => env('PANEL_SCREENSHOT_CATALOGUE_BRAND_FAVICON'),
     ],
+
+    /*
+     * Queue name for the capture + index-rebuild + auto-sync jobs.
+     *
+     * Captures take 30 seconds to several minutes per page and would
+     * starve a generic `default` queue worker that's also handling fast
+     * app jobs (or get killed by Horizon's typical 60s default-queue
+     * timeout). Use a dedicated queue that hosts can wire to a
+     * long-timeout supervisor. For Horizon, add a supervisor with
+     * `queue: ['screenshots']`, `timeout: 600`, `maxProcesses: 1`. For a
+     * standalone worker:
+     *
+     *   php artisan queue:work --queue=screenshots --timeout=600 --tries=2
+     *
+     * Set to `'default'` to share the app's default queue (legacy
+     * behaviour pre-5.3.0).
+     */
+    'queue' => env('PANEL_SCREENSHOT_CATALOGUE_QUEUE', 'screenshots'),
 ];
