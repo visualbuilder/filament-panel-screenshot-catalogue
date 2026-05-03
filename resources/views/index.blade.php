@@ -304,7 +304,7 @@
     <div class="body-pane">
     <header>
         <h1>
-            @php($brandLabel = $brandName ?? 'Panel Screenshots')
+            @php $brandLabel = $brandName ?? 'Panel Screenshots'; @endphp
             <img src="logo.svg" alt="{{ $brandLabel }}" class="brand" onerror="this.style.display='none'">
             <span class="title-divider"></span>
             <span class="title-text">{{ \Illuminate\Support\Str::headline($panel) }} Panel Screenshots</span>

@@ -118,69 +118,119 @@ class GeneratePanelSitemapCommand extends Command
         $entries = [];
 
         foreach ($panel->getResources() as $resourceClass) {
-            $resourceSlug = $resourceClass::getSlug();
-            $baseLabel = $this->resourceLabel($resourceClass);
-            // Resources slot into the 100-8999 range so they sit after
-            // auth + dashboard but before generic custom pages. The
-            // Filament navigationSort is a small int; multiply by 10 so
-            // we still have room for index/create/view/edit sub-ordering.
-            $resourceSort = 100 + (((int) ($resourceClass::getNavigationSort() ?? 100)) * 10);
+            // One bad resource shouldn't tank the whole panel's sitemap.
+            // Real-world hosts often have a resource that calls
+            // `getPlugin('foo')` against a panel where `foo` isn't
+            // registered, or otherwise blows up at metadata-load time.
+            // Skip with a warning, keep going.
+            try {
+                $entries = array_merge(
+                    $entries,
+                    $this->resourcePageEntries($resourceClass, $panelId),
+                );
+            } catch (\Throwable $e) {
+                $this->warn(sprintf(
+                    '  ! Skipping resource %s on panel %s: %s',
+                    class_basename($resourceClass),
+                    $panelId,
+                    $e->getMessage(),
+                ));
+            }
+        }
 
-            foreach (array_keys($resourceClass::getPages()) as $pageName) {
-                $type = match ($pageName) {
-                    'index' => 'resource_index',
-                    'create' => 'resource_create',
-                    'view' => 'resource_view',
-                    'edit' => 'resource_edit',
-                    default => 'resource_' . $pageName,
-                };
+        return $entries;
+    }
 
-                $label = match ($pageName) {
-                    'index' => $baseLabel,
-                    'create' => "{$baseLabel} · Create",
-                    'view' => "{$baseLabel} · View",
-                    'edit' => "{$baseLabel} · Edit",
-                    default => "{$baseLabel} · " . ucfirst($pageName),
-                };
+    /**
+     * Build sitemap entries for every navigable page on a single resource.
+     * Extracted so resourceEntries() can wrap each call in a try/catch
+     * without nesting deeply.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function resourcePageEntries(string $resourceClass, string $panelId): array
+    {
+        $entries = [];
+        $resourceSlug = $resourceClass::getSlug();
+        $baseLabel = $this->resourceLabel($resourceClass);
+        // Resources slot into the 100-8999 range so they sit after
+        // auth + dashboard but before generic custom pages. The
+        // Filament navigationSort is a small int; multiply by 10 so
+        // we still have room for index/create/view/edit sub-ordering.
+        $resourceSort = 100 + (((int) ($resourceClass::getNavigationSort() ?? 100)) * 10);
 
-                // Sub-order pages within a resource: index → create → view → edit.
-                $sort = $resourceSort + match ($pageName) {
-                    'index' => 0,
-                    'create' => 1,
-                    'view' => 2,
-                    'edit' => 3,
-                    default => 4,
-                };
+        foreach (array_keys($resourceClass::getPages()) as $pageName) {
+            $type = match ($pageName) {
+                'index' => 'resource_index',
+                'create' => 'resource_create',
+                'view' => 'resource_view',
+                'edit' => 'resource_edit',
+                default => 'resource_' . $pageName,
+            };
 
-                $needsRecord = in_array($pageName, ['view', 'edit'], true);
+            $label = match ($pageName) {
+                'index' => $baseLabel,
+                'create' => "{$baseLabel} · Create",
+                'view' => "{$baseLabel} · View",
+                'edit' => "{$baseLabel} · Edit",
+                default => "{$baseLabel} · " . ucfirst($pageName),
+            };
 
-                if ($needsRecord) {
-                    $record = $this->findSampleRecord($resourceClass, $panelId);
-                    if ($record === null) {
-                        continue;
-                    }
+            // Sub-order pages within a resource: index → create → view → edit.
+            $sort = $resourceSort + match ($pageName) {
+                'index' => 0,
+                'create' => 1,
+                'view' => 2,
+                'edit' => 3,
+                default => 4,
+            };
 
-                    $entries[] = $this->makeEntry(
-                        slug: $resourceSlug . '.' . $pageName,
-                        url: $resourceClass::getUrl($pageName, ['record' => $record], isAbsolute: false, panel: $panelId),
-                        type: $type,
-                        label: $label,
-                        sort: $sort,
-                        extra: [
-                            'resource' => $resourceClass,
-                            'record_id' => $record->getKey(),
-                        ],
-                    );
-                } else {
-                    $entries[] = $this->makeEntry(
-                        slug: $resourceSlug . '.' . $pageName,
-                        url: $resourceClass::getUrl($pageName, isAbsolute: false, panel: $panelId),
-                        type: $type,
-                        label: $label,
-                        sort: $sort,
-                        extra: ['resource' => $resourceClass],
-                    );
+            // Try the page without a record first. If the route URI
+            // declares {record} (e.g. view, edit, or any custom page
+            // like ".../{record}/revisions"), Laravel throws
+            // UrlGenerationException. We catch and retry with a sample
+            // record. Avoids hardcoding the page-name list, which
+            // misses every custom resource page.
+            try {
+                $url = $resourceClass::getUrl($pageName, isAbsolute: false, panel: $panelId);
+                $entries[] = $this->makeEntry(
+                    slug: $resourceSlug . '.' . $pageName,
+                    url: $url,
+                    type: $type,
+                    label: $label,
+                    sort: $sort,
+                    extra: ['resource' => $resourceClass],
+                );
+            } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
+                $record = $this->findSampleRecord($resourceClass, $panelId);
+                if ($record === null) {
+                    continue;
                 }
+
+                try {
+                    $url = $resourceClass::getUrl(
+                        $pageName,
+                        ['record' => $record],
+                        isAbsolute: false,
+                        panel: $panelId,
+                    );
+                } catch (\Throwable) {
+                    // Page needs more than just `record` — give up on it
+                    // rather than crash the whole sitemap.
+                    continue;
+                }
+
+                $entries[] = $this->makeEntry(
+                    slug: $resourceSlug . '.' . $pageName,
+                    url: $url,
+                    type: $type,
+                    label: $label,
+                    sort: $sort,
+                    extra: [
+                        'resource' => $resourceClass,
+                        'record_id' => $record->getKey(),
+                    ],
+                );
             }
         }
 
