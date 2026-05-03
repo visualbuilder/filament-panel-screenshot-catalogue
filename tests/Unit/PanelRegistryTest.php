@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelDescriptor;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelDescriptor;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
 
 function descriptor(string $key = 'enduser', string $panelId = 'endUser'): PanelDescriptor
 {

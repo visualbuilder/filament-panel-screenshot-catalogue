@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelDescriptor;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Services\ScreenshotConfig;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelDescriptor;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\Services\ScreenshotConfig;
 
 function registerExampleDescriptor(): void
 {
@@ -45,7 +45,7 @@ it('panelInternalId falls through unchanged when no descriptor matches', functio
 });
 
 it('viewportDefinitions returns hard-coded defaults when config is empty', function (): void {
-    config(['panel-screenshot-catalogue.viewports' => null]);
+    config(['screenshot-catalogue.viewports' => null]);
 
     $defs = ScreenshotConfig::viewportDefinitions();
 
@@ -54,7 +54,7 @@ it('viewportDefinitions returns hard-coded defaults when config is empty', funct
 });
 
 it('viewportDefinitions reads from config when provided', function (): void {
-    config(['panel-screenshot-catalogue.viewports' => [
+    config(['screenshot-catalogue.viewports' => [
         'wide' => ['name' => 'wide', 'width' => 1920, 'height' => 1080],
     ]]);
 
@@ -86,51 +86,51 @@ it('resolveEnv maps local to dev', function (): void {
 })->skip('env-dependent');
 
 it('s3Key builds the canonical path layout', function (): void {
-    config(['panel-screenshot-catalogue.path_prefix' => 'screenshots']);
+    config(['screenshot-catalogue.path_prefix' => 'screenshots']);
 
     expect(ScreenshotConfig::s3Key('dev', 'admin', 'latest', 'dashboard', 'desktop-light.png'))
         ->toBe('screenshots/dev/admin/latest/dashboard/desktop-light.png');
 });
 
 it('s3Key omits the env segment in production', function (): void {
-    config(['panel-screenshot-catalogue.path_prefix' => 'screenshots']);
+    config(['screenshot-catalogue.path_prefix' => 'screenshots']);
 
     expect(ScreenshotConfig::s3Key('production', 'admin', 'v1.0.0', 'dashboard', 'desktop-light.png'))
         ->toBe('screenshots/admin/v1.0.0/dashboard/desktop-light.png');
 });
 
 it('s3Key omits the slug segment for top-level files like index.html', function (): void {
-    config(['panel-screenshot-catalogue.path_prefix' => 'screenshots']);
+    config(['screenshot-catalogue.path_prefix' => 'screenshots']);
 
     expect(ScreenshotConfig::s3Key('dev', 'admin', 'latest', '', 'index.html'))
         ->toBe('screenshots/dev/admin/latest/index.html');
 });
 
 it('s3Key honours a custom path prefix', function (): void {
-    config(['panel-screenshot-catalogue.path_prefix' => 'visual-qa']);
+    config(['screenshot-catalogue.path_prefix' => 'visual-qa']);
 
     expect(ScreenshotConfig::s3Key('dev', 'admin', 'latest', '', 'index.html'))
         ->toBe('visual-qa/dev/admin/latest/index.html');
 });
 
 it('disk() reads from config with a sensible default', function (): void {
-    config(['panel-screenshot-catalogue.disk' => null]);
+    config(['screenshot-catalogue.disk' => null]);
     expect(ScreenshotConfig::disk())->toBe('s3_public');
 
-    config(['panel-screenshot-catalogue.disk' => 'minio']);
+    config(['screenshot-catalogue.disk' => 'minio']);
     expect(ScreenshotConfig::disk())->toBe('minio');
 });
 
 it('captureTimeCss returns the configured string and empty by default', function (): void {
-    config(['panel-screenshot-catalogue.capture_time_css' => '.fi-topbar { padding: 1rem }']);
+    config(['screenshot-catalogue.capture_time_css' => '.fi-topbar { padding: 1rem }']);
     expect(ScreenshotConfig::captureTimeCss())->toContain('padding: 1rem');
 
-    config(['panel-screenshot-catalogue.capture_time_css' => null]);
+    config(['screenshot-catalogue.capture_time_css' => null]);
     expect(ScreenshotConfig::captureTimeCss())->toBe('');
 });
 
 it('captureScript falls back to the bundled runner when no config override is set', function (): void {
-    config(['panel-screenshot-catalogue.capture_script' => null]);
+    config(['screenshot-catalogue.capture_script' => null]);
 
     expect(ScreenshotConfig::captureScript())
         ->toEndWith('resources/js/capture.mjs');

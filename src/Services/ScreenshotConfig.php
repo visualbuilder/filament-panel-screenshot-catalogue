@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Services;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Services;
 
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
 
 /**
  * Shared configuration helpers for the screenshot catalogue: panel
@@ -13,7 +13,7 @@ use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
  *
  * Panel credentials come from `PanelRegistry` — hosts register their
  * panels via `PanelRegistry::register(new PanelDescriptor(...))`. Viewport
- * defs and S3 path conventions come from `config('panel-screenshot-catalogue')`.
+ * defs and S3 path conventions come from `config('screenshot-catalogue')`.
  */
 class ScreenshotConfig
 {
@@ -52,7 +52,7 @@ class ScreenshotConfig
      */
     public static function viewportDefinitions(): array
     {
-        $configured = config('panel-screenshot-catalogue.viewports');
+        $configured = config('screenshot-catalogue.viewports');
 
         if (! is_array($configured) || $configured === []) {
             return [
@@ -115,7 +115,7 @@ class ScreenshotConfig
      */
     public static function s3Key(string $env, string $panel, string $version, string $slug, string $file): string
     {
-        $prefix = (string) config('panel-screenshot-catalogue.path_prefix', 'screenshots');
+        $prefix = (string) config('screenshot-catalogue.path_prefix', 'screenshots');
         $segments = [$prefix];
 
         if ($env !== 'production') {
@@ -138,7 +138,7 @@ class ScreenshotConfig
 
     public static function disk(): string
     {
-        $value = config('panel-screenshot-catalogue.disk');
+        $value = config('screenshot-catalogue.disk');
 
         return is_string($value) && $value !== '' ? $value : 's3_public';
     }
@@ -168,18 +168,18 @@ class ScreenshotConfig
      */
     public static function captureTimeCss(): string
     {
-        return (string) config('panel-screenshot-catalogue.capture_time_css', '');
+        return (string) config('screenshot-catalogue.capture_time_css', '');
     }
 
     /**
      * Resolve the path to the Playwright runner script. Hosts can publish
-     * the script (via `vendor:publish --tag=filament-panel-screenshot-catalogue-js`)
-     * and override `panel-screenshot-catalogue.capture_script` if they want
+     * the script (via `vendor:publish --tag=filament-screenshot-catalogue-js`)
+     * and override `screenshot-catalogue.capture_script` if they want
      * to customise it.
      */
     public static function captureScript(): string
     {
-        $configured = config('panel-screenshot-catalogue.capture_script');
+        $configured = config('screenshot-catalogue.capture_script');
         if (is_string($configured) && $configured !== '') {
             return $configured;
         }

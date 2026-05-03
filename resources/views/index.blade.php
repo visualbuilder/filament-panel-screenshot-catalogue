@@ -336,7 +336,7 @@
                 @foreach ($orderedViewports as $viewportName)
                     <div class="grid grid-{{ $viewportName }}">
                         @foreach ($modes as $mode)
-                            @include('filament-panel-screenshot-catalogue::partials.variant', [
+                            @include('filament-screenshot-catalogue::partials.variant', [
                                 'shot' => $shotsByVariant[$viewportName . '-' . $mode] ?? null,
                                 'viewport' => $viewportsByName[$viewportName],
                                 'mode' => $mode,

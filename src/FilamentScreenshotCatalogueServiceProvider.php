@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue;
+namespace Visualbuilder\FilamentScreenshotCatalogue;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Console\Commands\CaptureScreenshotsCommand;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Console\Commands\DispatchScreenshotCaptureCommand;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Console\Commands\GeneratePanelSitemapCommand;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Console\Commands\RebuildScreenshotIndexCommand;
+use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\CaptureScreenshotsCommand;
+use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\DispatchScreenshotCaptureCommand;
+use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\GeneratePanelSitemapCommand;
+use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\RebuildScreenshotIndexCommand;
 
-class FilamentPanelScreenshotCatalogueServiceProvider extends PackageServiceProvider
+class FilamentScreenshotCatalogueServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
         $package
-            ->name('filament-panel-screenshot-catalogue')
-            ->hasConfigFile('panel-screenshot-catalogue')
-            ->hasViews('filament-panel-screenshot-catalogue')
+            ->name('filament-screenshot-catalogue')
+            ->hasConfigFile('screenshot-catalogue')
+            ->hasViews('filament-screenshot-catalogue')
             ->hasCommands([
                 CaptureScreenshotsCommand::class,
                 DispatchScreenshotCaptureCommand::class,
@@ -31,13 +31,13 @@ class FilamentPanelScreenshotCatalogueServiceProvider extends PackageServiceProv
     {
         $this->publishes([
             __DIR__ . '/../resources/js' => base_path('resources/js/screenshot-catalogue'),
-        ], 'filament-panel-screenshot-catalogue-js');
+        ], 'filament-screenshot-catalogue-js');
 
         // Claude Code slash command — opt-in install for hosts that use
         // Claude Code to drive the catalogue. Copies into the host's own
         // `.claude/commands/`, where the slash command becomes invokable.
         $this->publishes([
             __DIR__ . '/../.claude/commands' => base_path('.claude/commands'),
-        ], 'filament-panel-screenshot-catalogue-claude-skills');
+        ], 'filament-screenshot-catalogue-claude-skills');
     }
 }

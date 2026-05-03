@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Services;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Services;
 
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;

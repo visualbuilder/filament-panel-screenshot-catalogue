@@ -23,7 +23,7 @@ The pipeline is:
 This is a development tool — most consumers will want it as a `require-dev` dependency so it never ships to production:
 
 ```bash
-composer require --dev visualbuilder/filament-panel-screenshot-catalogue
+composer require --dev visualbuilder/filament-screenshot-catalogue
 ```
 
 (If you genuinely need the artisan commands available in production — e.g. you run captures from a CI job that mounts production-like infrastructure — drop the `--dev` flag.)
@@ -40,9 +40,9 @@ The package's commands auto-register. Then make sure both Composer and Node prer
 Optionally publish the config, the Node runner, or the bundled Claude Code skill:
 
 ```bash
-php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-config         # override defaults
-php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-js             # custom Playwright runner
-php artisan vendor:publish --tag=filament-panel-screenshot-catalogue-claude-skills  # /screenshot-catalogue slash command
+php artisan vendor:publish --tag=filament-screenshot-catalogue-config         # override defaults
+php artisan vendor:publish --tag=filament-screenshot-catalogue-js             # custom Playwright runner
+php artisan vendor:publish --tag=filament-screenshot-catalogue-claude-skills  # /screenshot-catalogue slash command
 ```
 
 The Claude skill installs into the host's `.claude/commands/screenshot-catalogue.md` — gives Claude the full command surface, troubleshooting tips, and the `PanelDescriptor` registration pattern as context.
@@ -56,8 +56,8 @@ namespace App\Providers;
 
 use Filament\Facades\Filament;
 use Illuminate\Support\ServiceProvider;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelDescriptor;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelDescriptor;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
 
 class ScreenshotCatalogueServiceProvider extends ServiceProvider
 {
@@ -88,7 +88,7 @@ $providers = [
     // ...your usual providers...
 ];
 
-if (class_exists(\Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry::class)) {
+if (class_exists(\Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry::class)) {
     $providers[] = App\Providers\ScreenshotCatalogueServiceProvider::class;
 }
 
@@ -111,7 +111,7 @@ authenticator: static function (): void {
 
 ## Configuration
 
-Override defaults by publishing `config/panel-screenshot-catalogue.php`. Common knobs:
+Override defaults by publishing `config/screenshot-catalogue.php`. Common knobs:
 
 ```php
 return [

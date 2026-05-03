@@ -69,15 +69,15 @@ Before dispatching a run, make sure:
 2. **`APP_DEBUG=false`** on the env you're capturing from — otherwise the Laravel debug bar renders in every shot.
 3. **Queue worker is draining the right queue** (see `screenshot:dispatch --queue=...` if your app uses a non-default).
 4. **Playwright is installed** in the project: `npx playwright install chromium`.
-5. **The S3 disk** (`config('panel-screenshot-catalogue.disk')`, default `s3_public`) is configured.
+5. **The S3 disk** (`config('screenshot-catalogue.disk')`, default `s3_public`) is configured.
 
 ## Adding a new panel
 
 In your host project — typically a small service provider:
 
 ```php
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelDescriptor;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelDescriptor;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
 
 PanelRegistry::register(new PanelDescriptor(
     key:           'admin',
@@ -99,7 +99,7 @@ Tenanted panels: set `Filament::setTenant(...)` inside the closure too.
 
 - **`Unknown panel: foo`** — no descriptor registered for that key. Confirm the service provider runs at boot and that the descriptor's `key` matches what you're passing on the CLI.
 - **Sitemap entry's URL 404s in the capture** — the `findSampleRecord` lookup didn't find a record owned by the auth user. Check the `authenticator` closure actually logs the user in (and sets the tenant for tenanted panels).
-- **Topbar / sidebar animations look mid-state** — set `panel-screenshot-catalogue.capture_time_css` to lock theme animations. Example:
+- **Topbar / sidebar animations look mid-state** — set `screenshot-catalogue.capture_time_css` to lock theme animations. Example:
   ```php
   'capture_time_css' => '
       .fi-topbar { padding-block: 1rem !important; }

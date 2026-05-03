@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Console\Commands;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Console\Commands;
 
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Jobs\CapturePageScreenshotsJob;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Jobs\RebuildScreenshotIndexJob;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Services\ScreenshotConfig;
+use Visualbuilder\FilamentScreenshotCatalogue\Jobs\CapturePageScreenshotsJob;
+use Visualbuilder\FilamentScreenshotCatalogue\Jobs\RebuildScreenshotIndexJob;
+use Visualbuilder\FilamentScreenshotCatalogue\Services\ScreenshotConfig;
 use Illuminate\Bus\Batch;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Bus;

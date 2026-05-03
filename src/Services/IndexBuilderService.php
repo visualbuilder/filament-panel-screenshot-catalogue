@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Services;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -44,7 +44,7 @@ class IndexBuilderService
         $viewports = ScreenshotConfig::viewportDefinitions();
         $modes = ['light', 'dark'];
 
-        $html = view('filament-panel-screenshot-catalogue::index', [
+        $html = view('filament-screenshot-catalogue::index', [
             'env' => $env,
             'panel' => $panel,
             'version' => $version,
@@ -53,7 +53,7 @@ class IndexBuilderService
             'viewports' => array_values($viewports),
             'modes' => $modes,
             'labelsBySlug' => $labelsBySlug,
-            'brandName' => (string) config('panel-screenshot-catalogue.brand.name', 'Panel Screenshots'),
+            'brandName' => (string) config('screenshot-catalogue.brand.name', 'Panel Screenshots'),
         ])->render();
 
         $key = ScreenshotConfig::s3Key($env, $panel, $version, '', 'index.html');
@@ -68,7 +68,7 @@ class IndexBuilderService
     /**
      * Upload an optional brand asset (favicon, logo) next to the index so
      * the rendered page picks them up via relative URL. Source paths come
-     * from `panel-screenshot-catalogue.brand.{key}` — leave the config null
+     * from `screenshot-catalogue.brand.{key}` — leave the config null
      * to skip; the index Blade tolerates a missing image.
      */
     private function uploadBrandAsset(
@@ -79,7 +79,7 @@ class IndexBuilderService
         string $configKey,
         string $remoteFilename,
     ): void {
-        $sourcePath = config("panel-screenshot-catalogue.brand.{$configKey}");
+        $sourcePath = config("screenshot-catalogue.brand.{$configKey}");
         if (! is_string($sourcePath) || $sourcePath === '' || ! is_file($sourcePath)) {
             return;
         }

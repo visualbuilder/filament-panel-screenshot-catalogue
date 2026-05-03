@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * Defaults for the screenshot catalogue. Hosts override by publishing
- * (`vendor:publish --tag=filament-panel-screenshot-catalogue-config`)
+ * (`vendor:publish --tag=filament-screenshot-catalogue-config`)
  * and editing the generated copy. Panel descriptors are registered
  * separately via the `PanelRegistry::register(...)` static call — they
  * carry closures and credentials that don't fit a pure-PHP config file.
@@ -54,7 +54,7 @@ return [
     /*
      * Path to the Playwright runner script. Defaults to the version
      * shipped with the package. Override if you've published the script
-     * (via `vendor:publish --tag=filament-panel-screenshot-catalogue-js`)
+     * (via `vendor:publish --tag=filament-screenshot-catalogue-js`)
      * and customised it.
      */
     'capture_script' => env(

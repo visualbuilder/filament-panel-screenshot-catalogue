@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Console\Commands;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Console\Commands;
 
 use Filament\Facades\Filament;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
 
 /**
  * Walks a Filament panel and emits a flat list of every navigable URL —
@@ -32,7 +32,7 @@ class GeneratePanelSitemapCommand extends Command
 
     /**
      * Slugs to omit from the sitemap come from
-     * `panel-screenshot-catalogue.excluded_slugs` so each host can hide
+     * `screenshot-catalogue.excluded_slugs` so each host can hide
      * pages that aren't useful in the catalogue (empty without seed
      * fixtures, deprecated UI, etc.) without forking the package.
      *
@@ -40,7 +40,7 @@ class GeneratePanelSitemapCommand extends Command
      */
     private function excludedSlugs(): array
     {
-        $configured = config('panel-screenshot-catalogue.excluded_slugs', []);
+        $configured = config('screenshot-catalogue.excluded_slugs', []);
 
         return is_array($configured) ? $configured : [];
     }
@@ -50,7 +50,7 @@ class GeneratePanelSitemapCommand extends Command
         // Translate the friendly CLI key (e.g. `enduser`) to Filament's
         // internal panel ID (`endUser`). Falls through unchanged when no
         // descriptor is registered, preserving the old behaviour.
-        $panelId = \Visualbuilder\FilamentPanelScreenshotCatalogue\Services\ScreenshotConfig::panelInternalId(
+        $panelId = \Visualbuilder\FilamentScreenshotCatalogue\Services\ScreenshotConfig::panelInternalId(
             $this->option('panel')
         );
         $panel = Filament::getPanel($panelId, isStrict: false);

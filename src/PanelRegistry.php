@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue;
+namespace Visualbuilder\FilamentScreenshotCatalogue;
 
 /**
  * In-memory registry of `PanelDescriptor`s. The host registers descriptors

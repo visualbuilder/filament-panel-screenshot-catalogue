@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Jobs;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Jobs;
 
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Services\PageCaptureService;
+use Visualbuilder\FilamentScreenshotCatalogue\Services\PageCaptureService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

@@ -1,5 +1,5 @@
 {
-    "name": "visualbuilder/filament-panel-screenshot-catalogue",
+    "name": "visualbuilder/filament-screenshot-catalogue",
     "description": "Capture every page of a Filament v5 panel at multiple viewports and modes, upload to S3, generate a browsable index. Drop-in tooling for visual QA, design reviews, marketing assets, and AI-driven visual regression.",
     "keywords": [
         "visualbuilder",
@@ -9,7 +9,7 @@
         "visual-regression",
         "agentic"
     ],
-    "homepage": "https://github.com/visualbuilder/filament-panel-screenshot-catalogue",
+    "homepage": "https://github.com/visualbuilder/filament-screenshot-catalogue",
     "license": "GPL-2.0-or-later",
     "type": "library",
     "authors": [
@@ -37,12 +37,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Visualbuilder\\FilamentPanelScreenshotCatalogue\\": "src"
+            "Visualbuilder\\FilamentScreenshotCatalogue\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Visualbuilder\\FilamentPanelScreenshotCatalogue\\Tests\\": "tests"
+            "Visualbuilder\\FilamentScreenshotCatalogue\\Tests\\": "tests"
         }
     },
     "scripts": {
@@ -56,7 +56,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Visualbuilder\\FilamentPanelScreenshotCatalogue\\FilamentPanelScreenshotCatalogueServiceProvider"
+                "Visualbuilder\\FilamentScreenshotCatalogue\\FilamentScreenshotCatalogueServiceProvider"
             ]
         }
     },

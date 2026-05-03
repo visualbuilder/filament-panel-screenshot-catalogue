@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Console\Commands;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Services\IndexBuilderService;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\Services\ScreenshotConfig;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\Services\IndexBuilderService;
+use Visualbuilder\FilamentScreenshotCatalogue\Services\ScreenshotConfig;
 
 /**
  * Synchronous panel-wide visual catalogue capture. Walks the configured

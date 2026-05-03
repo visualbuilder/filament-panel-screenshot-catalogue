@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Visualbuilder\FilamentPanelScreenshotCatalogue\Tests;
+namespace Visualbuilder\FilamentScreenshotCatalogue\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\FilamentPanelScreenshotCatalogueServiceProvider;
-use Visualbuilder\FilamentPanelScreenshotCatalogue\PanelRegistry;
+use Visualbuilder\FilamentScreenshotCatalogue\FilamentScreenshotCatalogueServiceProvider;
+use Visualbuilder\FilamentScreenshotCatalogue\PanelRegistry;
 
 abstract class TestCase extends Orchestra
 {
@@ -21,6 +21,6 @@ abstract class TestCase extends Orchestra
 
     protected function getPackageProviders($app): array
     {
-        return [FilamentPanelScreenshotCatalogueServiceProvider::class];
+        return [FilamentScreenshotCatalogueServiceProvider::class];
     }
 }
