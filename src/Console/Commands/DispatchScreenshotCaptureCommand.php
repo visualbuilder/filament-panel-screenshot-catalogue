@@ -55,6 +55,25 @@ class DispatchScreenshotCaptureCommand extends Command
         }
 
         $pages = $this->loadPages($panel, (array) $this->option('page'));
+
+        // Self-heal: if the sitemap is missing or empty (e.g. first run
+        // for this panel, or a previous panel:sitemap run aborted),
+        // generate it inline before dispatching. Lets the
+        // "Regenerate captures" UI button work even on panels that
+        // never had a sitemap built. Skip if --page filters were
+        // passed (the caller knows what they want) and the empty
+        // result was due to filtering rather than missing data.
+        if (empty($pages) && empty((array) $this->option('page'))) {
+            $this->warn('Sitemap missing or empty — generating before dispatch.');
+            $exit = $this->callSilent('panel:sitemap', ['--panel' => $panel]);
+            if ($exit !== self::SUCCESS) {
+                $this->error('panel:sitemap failed (exit ' . $exit . ').');
+
+                return self::FAILURE;
+            }
+            $pages = $this->loadPages($panel, []);
+        }
+
         if (empty($pages)) {
             $this->error('No sitemap entries to dispatch — generate a sitemap first via `panel:sitemap`.');
 
