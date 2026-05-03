@@ -90,9 +90,26 @@ class DispatchScreenshotCaptureCommand extends Command
             ->allowFailures()
             // `finally` fires after every job has run, regardless of
             // success/failure — so the index always rebuilds against
-            // whatever shots actually landed on S3.
-            ->finally(function (Batch $batch) use ($finalize): void {
+            // whatever shots actually landed on S3. If the
+            // filament-screenshot-review package is installed, also fan
+            // out a sync so its DB-backed Captures grid mirrors S3
+            // without requiring a manual `screenshot-review:sync-captures`.
+            ->finally(function (Batch $batch) use ($finalize, $panel, $version): void {
                 dispatch($finalize);
+
+                // Soft hook — if the filament-screenshot-review package
+                // is installed, ingest the new captures into its DB so
+                // the Captures grid stays in step with S3 without a
+                // manual `screenshot-review:sync-captures` call. Falls
+                // through silently when the package isn't present.
+                if (class_exists(\Visualbuilder\FilamentScreenshotReview\Console\Commands\SyncScreenshotCapturesCommand::class)) {
+                    dispatch(function () use ($panel, $version): void {
+                        \Illuminate\Support\Facades\Artisan::call('screenshot-review:sync-captures', [
+                            '--panel' => $panel,
+                            '--tag' => $version,
+                        ]);
+                    });
+                }
             });
 
         if ($queue = $this->option('queue')) {
