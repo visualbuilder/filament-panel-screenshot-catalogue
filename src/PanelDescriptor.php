@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Visualbuilder\FilamentScreenshotCatalogue;
 
 use Closure;
+use Illuminate\Support\Str;
 
 /**
  * Value object describing one Filament panel for the catalogue.
@@ -45,5 +46,22 @@ final class PanelDescriptor
          * @var Closure|null
          */
         public readonly ?Closure $authenticator = null,
+        /**
+         * Display label for the panel — used by review-side tab labels,
+         * dashboards, etc. Falls back to a headlined version of $key
+         * (e.g. "enduser" -> "Enduser"), which is fine for single-word
+         * keys but not for composites like "customorg" -> set this
+         * explicitly to "Custom Organisation".
+         */
+        public readonly ?string $label = null,
     ) {}
+
+    /**
+     * Resolved display label — explicit `$label` if set, otherwise a
+     * headlined version of the key.
+     */
+    public function label(): string
+    {
+        return $this->label ?? Str::headline($this->key);
+    }
 }
