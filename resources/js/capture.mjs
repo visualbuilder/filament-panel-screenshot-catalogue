@@ -45,9 +45,11 @@ async function login(page, manifest) {
     const before = page.url();
     await page.getByRole('button', { name: 'Sign in' }).click();
 
-    // Wait for navigation away from /login. Tolerant timeout — slow login
-    // shouldn't fail the whole run.
-    await page.waitForURL((url) => url.toString() !== before, { timeout: 30000 });
+    // Wait for navigation away from /login. Generous timeout — under
+    // high parallel-worker concurrency the host's php-fpm pool can queue
+    // login submits, so 30s isn't enough; 90s lets the dev server
+    // catch up without needing per-host config.
+    await page.waitForURL((url) => url.toString() !== before, { timeout: 90000 });
 }
 
 async function setMode(page, mode) {
