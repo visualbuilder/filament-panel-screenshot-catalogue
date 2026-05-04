@@ -8,6 +8,7 @@ use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\CaptureScreenshotsCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\DispatchScreenshotCaptureCommand;
+use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\FlushScreenshotQueueCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\GeneratePanelSitemapCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\RebuildScreenshotIndexCommand;
 
@@ -22,6 +23,7 @@ class FilamentScreenshotCatalogueServiceProvider extends PackageServiceProvider
             ->hasCommands([
                 CaptureScreenshotsCommand::class,
                 DispatchScreenshotCaptureCommand::class,
+                FlushScreenshotQueueCommand::class,
                 GeneratePanelSitemapCommand::class,
                 RebuildScreenshotIndexCommand::class,
             ]);
