@@ -105,7 +105,7 @@ class CaptureScreenshotsCommand extends Command
         $version = $this->option('tag');
         $panel = ScreenshotConfig::panelInternalId($panelKey);
 
-        $this->processAndUpload($captured, env: $env, panel: $panel, version: $version);
+        $this->processAndUpload($captured, env: $env, panelKey: $panelKey, panelId: $panel, version: $version);
 
         $indexUrl = $indexBuilder->rebuild($panelKey, $env, $version);
 
@@ -119,16 +119,39 @@ class CaptureScreenshotsCommand extends Command
     /**
      * @param  array<int, array{slug: string, viewport: string, mode: string, path: string}>  $captured
      */
-    private function processAndUpload(array $captured, string $env, string $panel, string $version): void
+    private function processAndUpload(array $captured, string $env, string $panelKey, string $panelId, string $version): void
     {
-        $disk = Storage::disk(ScreenshotConfig::disk());
+        $diskName = ScreenshotConfig::disk();
+        $disk = Storage::disk($diskName);
 
         $this->newLine();
         $this->getOutput()->write('Uploading: ');
 
         foreach ($captured as $shot) {
-            $key = ScreenshotConfig::s3Key($env, $panel, $version, $shot['slug'], "{$shot['viewport']}-{$shot['mode']}.png");
-            $disk->put($key, (string) file_get_contents($shot['path']), ['ContentType' => 'image/png']);
+            $key = ScreenshotConfig::s3Key($env, $panelId, $version, $shot['slug'], "{$shot['viewport']}-{$shot['mode']}.png");
+            $contents = (string) file_get_contents($shot['path']);
+            $disk->put($key, $contents, ['ContentType' => 'image/png']);
+
+            // Mirror the per-shot event from PageCaptureService so the
+            // sync `screenshot:capture` CLI path also feeds incremental
+            // listeners (e.g. screenshot-review's
+            // CreateScreenshotCaptureRow). Without this only the queued
+            // dispatch path produces DB rows live.
+            event(new \Visualbuilder\FilamentScreenshotCatalogue\Events\ScreenshotCaptured(
+                panelKey: $panelKey,
+                panelId: $panelId,
+                slug: $shot['slug'],
+                viewport: $shot['viewport'],
+                mode: $shot['mode'],
+                env: $env,
+                version: $version,
+                disk: $diskName,
+                key: $key,
+                etag: md5($contents),
+                size: strlen($contents),
+                url: $disk->url($key),
+            ));
+
             $this->getOutput()->write('.');
         }
 

@@ -7,6 +7,7 @@ namespace Visualbuilder\FilamentScreenshotCatalogue\Services;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Symfony\Component\Process\Process;
+use Visualbuilder\FilamentScreenshotCatalogue\Events\ScreenshotCaptured;
 
 /**
  * Spawns the Playwright runner for one or more pages and uploads each
@@ -60,26 +61,55 @@ class PageCaptureService
         $result = json_decode($process->getOutput(), true) ?: [];
         $captured = $result['captured'] ?? [];
 
-        return $this->uploadShots($captured, $env, ScreenshotConfig::panelInternalId($panelKey), $version);
+        return $this->uploadShots(
+            $captured,
+            $env,
+            $panelKey,
+            ScreenshotConfig::panelInternalId($panelKey),
+            $version,
+        );
     }
 
     /**
      * @param  array<int, array{slug: string, viewport: string, mode: string, path: string}>  $captured
      * @return array<int, array{slug: string, viewport: string, mode: string, path: string, url: string}>
      */
-    private function uploadShots(array $captured, string $env, string $panel, string $version): array
+    private function uploadShots(array $captured, string $env, string $panelKey, string $panelId, string $version): array
     {
-        $disk = Storage::disk(ScreenshotConfig::disk());
+        $diskName = ScreenshotConfig::disk();
+        $disk = Storage::disk($diskName);
         $shots = [];
 
         foreach ($captured as $shot) {
             $contents = (string) file_get_contents($shot['path']);
-            $key = ScreenshotConfig::s3Key($env, $panel, $version, $shot['slug'], "{$shot['viewport']}-{$shot['mode']}.png");
+            $key = ScreenshotConfig::s3Key($env, $panelId, $version, $shot['slug'], "{$shot['viewport']}-{$shot['mode']}.png");
             $disk->put($key, $contents, ['ContentType' => 'image/png']);
+
+            $url = $disk->url($key);
+
+            // Fire per-shot event so optional listeners (e.g. the
+            // screenshot-review package) can ingest the capture into
+            // their DB incrementally — reviewers see the captures grid
+            // populate as the batch progresses, instead of waiting for
+            // the batch's `finally` sync at the end.
+            event(new ScreenshotCaptured(
+                panelKey: $panelKey,
+                panelId: $panelId,
+                slug: $shot['slug'],
+                viewport: $shot['viewport'],
+                mode: $shot['mode'],
+                env: $env,
+                version: $version,
+                disk: $diskName,
+                key: $key,
+                etag: md5($contents),
+                size: strlen($contents),
+                url: $url,
+            ));
 
             $shots[] = [
                 ...$shot,
-                'url' => $disk->url($key),
+                'url' => $url,
             ];
         }
 
