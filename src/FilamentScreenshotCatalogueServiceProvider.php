@@ -10,6 +10,7 @@ use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\CaptureScreenshot
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\DispatchScreenshotCaptureCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\FlushScreenshotQueueCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\GeneratePanelSitemapCommand;
+use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\ListIndexesCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\RebuildScreenshotIndexCommand;
 
 class FilamentScreenshotCatalogueServiceProvider extends PackageServiceProvider
@@ -25,6 +26,7 @@ class FilamentScreenshotCatalogueServiceProvider extends PackageServiceProvider
                 DispatchScreenshotCaptureCommand::class,
                 FlushScreenshotQueueCommand::class,
                 GeneratePanelSitemapCommand::class,
+                ListIndexesCommand::class,
                 RebuildScreenshotIndexCommand::class,
             ]);
     }
