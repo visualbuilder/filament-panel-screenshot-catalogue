@@ -78,12 +78,40 @@ class GeneratePanelSitemapCommand extends Command
 
             $this->authForPanel($panelId);
 
+            // Order matters — entries from earlier sources WIN the
+            // dedup pass below. authEntries is first because its
+            // emissions carry `auth: unauthenticated`; if a custom
+            // page (e.g. App\Filament\Auth\EndUserLogin) also gets
+            // discovered by customPageEntries with the same slug, the
+            // auth-marked version must take precedence so the capture
+            // script routes /login through the throwaway-context
+            // branch instead of the post-login authenticated context
+            // (which redirects /login → dashboard and clobbers the S3
+            // file with the wrong shot).
             $entries = [
                 ...$this->authEntries($panel, $panelId),
                 ...$this->resourceEntries($panel, $panelId),
                 ...$this->customPageEntries($panel, $panelId),
                 ...$this->extraEntries($panelId),
             ];
+
+            // Dedupe by slug — first emission wins. Authoritative auth
+            // entries (login, password-reset) supersede any duplicate
+            // discovery from customPageEntries. Without this, both got
+            // captured, the auth-context one uploaded SECOND and won
+            // the S3 key — every reviewer saw the dashboard at /login.
+            $seen = [];
+            $entries = array_values(array_filter(
+                $entries,
+                static function (array $entry) use (&$seen): bool {
+                    if (isset($seen[$entry['slug']])) {
+                        return false;
+                    }
+                    $seen[$entry['slug']] = true;
+
+                    return true;
+                },
+            ));
 
             $excluded = $this->excludedSlugs();
             $entries = array_values(array_filter(
