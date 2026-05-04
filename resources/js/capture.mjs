@@ -155,21 +155,33 @@ async function capturePage(context, manifest, target, viewport, mode) {
 
         const captured = [];
 
-        // 1. Unauthenticated pages — fresh context, no cookies.
+        // 1. Unauthenticated pages — fresh context PER SHOT, not just per
+        // unauth page list. Filament's middleware on /login sets a
+        // session cookie even for anonymous GETs; the second capture in
+        // the same context (e.g. dark mode after light) then arrives
+        // with that cookie and Filament's RedirectIfAuthenticated /
+        // session-prelude flow treats it as a returning visitor and
+        // bounces to the dashboard. Throwaway context per shot makes
+        // every unauth capture genuinely first-visit.
         if (unauthPages.length > 0) {
-            const guestContext = await browser.newContext({ ignoreHTTPSErrors: true });
             try {
                 for (const target of unauthPages) {
                     for (const viewport of manifest.viewports) {
                         for (const mode of manifest.modes) {
-                            const out = await capturePage(guestContext, manifest, target, viewport, mode);
-                            captured.push({ slug: target.slug, viewport: viewport.name, mode, path: out });
-                            console.error(`captured ${target.slug} ${viewport.name}-${mode} (guest)`);
+                            const guestContext = await browser.newContext({ ignoreHTTPSErrors: true });
+                            try {
+                                const out = await capturePage(guestContext, manifest, target, viewport, mode);
+                                captured.push({ slug: target.slug, viewport: viewport.name, mode, path: out });
+                                console.error(`captured ${target.slug} ${viewport.name}-${mode} (guest)`);
+                            } finally {
+                                await guestContext.close();
+                            }
                         }
                     }
                 }
-            } finally {
-                await guestContext.close();
+            } catch (err) {
+                console.error(`unauth capture loop error: ${err.message}`);
+                throw err;
             }
         }
 
