@@ -7,6 +7,7 @@ namespace Visualbuilder\FilamentScreenshotCatalogue;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\CaptureScreenshotsCommand;
+use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\CaptureUrlScreenshotCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\DispatchScreenshotCaptureCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\FlushScreenshotQueueCommand;
 use Visualbuilder\FilamentScreenshotCatalogue\Console\Commands\GeneratePanelSitemapCommand;
@@ -23,6 +24,7 @@ class FilamentScreenshotCatalogueServiceProvider extends PackageServiceProvider
             ->hasViews('filament-screenshot-catalogue')
             ->hasCommands([
                 CaptureScreenshotsCommand::class,
+                CaptureUrlScreenshotCommand::class,
                 DispatchScreenshotCaptureCommand::class,
                 FlushScreenshotQueueCommand::class,
                 GeneratePanelSitemapCommand::class,

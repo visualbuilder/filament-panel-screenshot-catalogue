@@ -186,4 +186,18 @@ class ScreenshotConfig
 
         return dirname(__DIR__, 2) . '/resources/js/capture.mjs';
     }
+
+    /**
+     * Resolve the path to the single-URL Playwright runner used by
+     * `screenshot:url`. Override via `screenshot-catalogue.capture_url_script`.
+     */
+    public static function captureUrlScript(): string
+    {
+        $configured = config('screenshot-catalogue.capture_url_script');
+        if (is_string($configured) && $configured !== '') {
+            return $configured;
+        }
+
+        return dirname(__DIR__, 2) . '/resources/js/capture-url.mjs';
+    }
 }
