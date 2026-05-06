@@ -3,15 +3,14 @@
  * Single-URL screenshot runner.
  *
  * Reads a JSON manifest from stdin, optionally logs into a generic HTML
- * form (selectors default to WordPress wp-login.php), navigates to the
- * target URL, and writes one PNG. Driven by the PHP Artisan command
- * `screenshot:url` — never invoke directly unless debugging.
+ * form (selectors default to WordPress wp-login.php), then captures
+ * the same URL across one or more viewports — login happens once and
+ * the session is reused for every shot. Driven by the PHP Artisan
+ * command `screenshot:url` — never invoke directly unless debugging.
  *
  * Manifest shape:
  *   {
  *     "url": "https://example.com/wp-admin/",
- *     "output": "/abs/path/to/shot.png",
- *     "viewport": { "name": "desktop", "width": 1280, "height": 800 },
  *     "fullPage": false,
  *     "waitMs": 1500,
  *     "ignoreHttpsErrors": false,
@@ -22,7 +21,12 @@
  *         "usernameSelector": "#user_login",
  *         "passwordSelector": "#user_pass",
  *         "submitSelector": "#wp-submit"
- *     } | null
+ *     } | null,
+ *     "shots": [
+ *         { "viewport": { "name": "desktop", "width": 1280, "height": 800 },
+ *           "output": "/abs/path/to/desktop.png" },
+ *         ...
+ *     ]
  *   }
  */
 
@@ -49,6 +53,26 @@ async function login(page, login) {
     ]);
 }
 
+async function captureShot(context, manifest, shot) {
+    const page = await context.newPage();
+    try {
+        await page.setViewportSize({
+            width: shot.viewport.width,
+            height: shot.viewport.height,
+        });
+        await page.goto(manifest.url, { waitUntil: 'domcontentloaded' });
+        if (manifest.waitMs > 0) {
+            await page.waitForTimeout(manifest.waitMs);
+        }
+
+        await mkdir(dirname(shot.output), { recursive: true });
+        await page.screenshot({ path: shot.output, fullPage: !!manifest.fullPage });
+        console.error(`captured ${shot.viewport.name} → ${shot.output}`);
+    } finally {
+        await page.close();
+    }
+}
+
 (async () => {
     const manifest = JSON.parse(await readStdin());
 
@@ -57,25 +81,21 @@ async function login(page, login) {
     });
     const context = await browser.newContext({
         ignoreHTTPSErrors: !!manifest.ignoreHttpsErrors,
-        viewport: { width: manifest.viewport.width, height: manifest.viewport.height },
     });
 
     try {
-        const page = await context.newPage();
-
         if (manifest.login) {
-            await login(page, manifest.login);
+            const loginPage = await context.newPage();
+            try {
+                await login(loginPage, manifest.login);
+            } finally {
+                await loginPage.close();
+            }
         }
 
-        await page.goto(manifest.url, { waitUntil: 'domcontentloaded' });
-        if (manifest.waitMs > 0) {
-            await page.waitForTimeout(manifest.waitMs);
+        for (const shot of manifest.shots) {
+            await captureShot(context, manifest, shot);
         }
-
-        await mkdir(dirname(manifest.output), { recursive: true });
-        await page.screenshot({ path: manifest.output, fullPage: !!manifest.fullPage });
-
-        console.error(`captured ${manifest.url} → ${manifest.output}`);
     } finally {
         await context.close();
         await browser.close();
