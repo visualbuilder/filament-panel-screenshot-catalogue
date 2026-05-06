@@ -27,7 +27,7 @@ class CaptureUrlScreenshotCommand extends Command
         {--username-selector=#user_login : CSS selector for the username field. Default targets WordPress wp-login.php.}
         {--password-selector=#user_pass : CSS selector for the password field.}
         {--submit-selector=#wp-submit : CSS selector for the submit button.}
-        {--viewport=desktop : Viewport name from screenshot-catalogue.viewports, or "custom" with --width/--height.}
+        {--viewport=desktop : Viewport: desktop (1280×800), tablet (768×1024), mobile (375×812), or "custom" with --width/--height. Names from screenshot-catalogue.viewports config.}
         {--width= : Viewport width in pixels (used when --viewport=custom).}
         {--height= : Viewport height in pixels (used when --viewport=custom).}
         {--full-page : Capture the full scrollable page rather than just the viewport.}
