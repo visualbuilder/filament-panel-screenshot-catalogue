@@ -125,11 +125,13 @@ async function capturePage(context, manifest, target, viewport, mode) {
 
     const out = `${manifest.outDir}/${target.slug}/${viewport.name}-${mode}.png`;
     await mkdir(dirname(out), { recursive: true });
-    // Always capture viewport-only — every shot in the catalogue should
+    // Default: capture viewport-only — every shot in the catalogue should
     // represent what fits on a real device. Long tables/forms scrolling
     // off-screen is a deliberate UX signal we want to see, not a problem
     // the screenshot tool should hide by stitching the full document.
-    await page.screenshot({ path: out, fullPage: false });
+    // `manifest.fullPage` (set by --full-height) opts in to a stitched
+    // full-document capture when reviewers explicitly want the whole page.
+    await page.screenshot({ path: out, fullPage: Boolean(manifest.fullPage) });
 
     await page.close();
     return out;

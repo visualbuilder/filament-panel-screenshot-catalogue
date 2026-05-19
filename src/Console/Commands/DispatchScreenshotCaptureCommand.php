@@ -29,7 +29,8 @@ class DispatchScreenshotCaptureCommand extends Command
         {--mode=* : Mode to capture (light|dark). Default: light + dark.}
         {--viewport=* : Viewport to capture (desktop|tablet|mobile). Default: all three.}
         {--tag=latest : Version segment for the S3 path. "latest" overwrites; pass a tag (e.g. v2.5.0) for an immutable run.}
-        {--queue= : Queue connection/name to dispatch onto. Defaults to the app queue.}';
+        {--queue= : Queue connection/name to dispatch onto. Defaults to the app queue.}
+        {--full-height : Capture the full scrollable document instead of just the viewport.}';
 
     protected $description = 'Dispatch a Bus::batch of one CapturePageScreenshotsJob per sitemap entry, then rebuild the index.';
 
@@ -85,6 +86,8 @@ class DispatchScreenshotCaptureCommand extends Command
         $env = ScreenshotConfig::resolveEnv();
         $version = $this->option('tag');
 
+        $fullPage = (bool) $this->option('full-height');
+
         $jobs = collect($pages)
             ->map(fn (array $page) => new CapturePageScreenshotsJob(
                 panelKey: $panel,
@@ -93,6 +96,7 @@ class DispatchScreenshotCaptureCommand extends Command
                 modes: $modes,
                 env: $env,
                 version: $version,
+                fullPage: $fullPage,
             ))
             ->all();
 

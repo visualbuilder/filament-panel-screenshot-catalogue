@@ -45,6 +45,7 @@ class CapturePageScreenshotsJob implements ShouldQueue
         public array $modes,
         public string $env,
         public string $version,
+        public bool $fullPage = false,
     ) {
         // Default to the dedicated screenshots queue so capture work
         // doesn't share a worker with fast app jobs (and so Horizon
@@ -67,6 +68,7 @@ class CapturePageScreenshotsJob implements ShouldQueue
             modes: $this->modes,
             env: $this->env,
             version: $this->version,
+            fullPage: $this->fullPage,
         );
     }
 

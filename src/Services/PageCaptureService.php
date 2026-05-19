@@ -26,7 +26,7 @@ class PageCaptureService
      * @param  array<int, string>  $modes
      * @return array<int, array{slug: string, viewport: string, mode: string, path: string, url: string}>
      */
-    public function capture(string $panelKey, array $pages, array $viewports, array $modes, string $env, string $version, ?string $runId = null): array
+    public function capture(string $panelKey, array $pages, array $viewports, array $modes, string $env, string $version, ?string $runId = null, bool $fullPage = false): array
     {
         if (empty($pages)) {
             return [];
@@ -52,6 +52,7 @@ class PageCaptureService
             'pages' => $pages,
             'dismissBannerIds' => ScreenshotConfig::dismissibleBannerIds(),
             'captureTimeCss' => ScreenshotConfig::captureTimeCss(),
+            'fullPage' => $fullPage,
         ];
 
         $script = ScreenshotConfig::captureScript();
